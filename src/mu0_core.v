@@ -8,7 +8,9 @@ module mu0_core (
 
     reg [11:0] pc;
     reg [15:0] ir;
+    reg fetch; // If high then you perform a fetch, else you perform an execute 
     reg [15:0] memory [0:255]; // 256 16-bit words of memory
+    
 
     initial begin
         // Program
@@ -30,61 +32,71 @@ module mu0_core (
                     pc <= 0;
                     ir <= 0;
                     acc <= 0;
+                    fetch <= 1;
                 end
             else
                 begin
-                    // Load what ever is at address pc into the instruction register
-                    ir <= memory[pc];
-                    // Point the pc to the next instruction
-                    pc <= pc + 1;
+                        // Load what ever is at address pc into the 
+                    if (fetch)
+                        begin
+                            ir <= memory[pc];
+                            fetch <= 0;
+                        end 
 
-                    case (ir[15:12])
-                        4'h0: // LDA, load the value from [11:0] in the accumulator 
-                            begin
-                                acc <= memory[ir[11:0]];
-                            end 
+                    else
+                        begin
+                        // Point the pc to the next instruction
+                        pc <= pc + 1;
+                        case (ir[15:12])
+                            4'h0: // LDA, load the value from [11:0] in the accumulator 
+                                begin
+                                    acc <= memory[ir[11:0]];
+                                end 
 
-                        4'h1: // STO, stores the value in the accumulator into that memory address
-                            begin 
-                                memory[ir[11:0]] <= acc;
-                            end 
-                            
-                        4'h2: // ADD, acc = acc + memory[ir[11:0]] 
-                            begin 
-                                acc <= acc + memory[ir[11:0]];
-                            end 
-
-                        4'h3: // SUB, acc = acc - memory[operand]
-                            begin 
-                                acc <= acc - memory[ir[11:0]];
-                            end 
-                        4'h4: // JMP, pc = operand
-                            begin
-                                pc <= ir[11:0];
-
-                            end
-                        4'h5: // JGE, if acc >= 0, pc = operand
-                            begin
-                                if (acc[15] == 0)
-                                    begin 
-                                        pc <= ir[11:0];
-                                    end
-                            end
+                            4'h1: // STO, stores the value in the accumulator into that memory address
+                                begin 
+                                    memory[ir[11:0]] <= acc;
+                                end 
                                 
-                        4'h6: // JNE, if acc != 0, pc = operand
-                            begin 
-                                if (acc != 0)
-                                    begin
-                                        pc <= ir[11:0];
-                                    end
+                            4'h2: // ADD, acc = acc + memory[ir[11:0]] 
+                                begin 
+                                    acc <= acc + memory[ir[11:0]];
+                                end 
 
-                            end 
-                        4'hF: // STP, halt, do nothing
-                            begin
-                                pc <= pc;
-                            end
-                    endcase
+                            4'h3: // SUB, acc = acc - memory[operand]
+                                begin 
+                                    acc <= acc - memory[ir[11:0]];
+                                end 
+                            4'h4: // JMP, pc = operand
+                                begin
+                                    pc <= ir[11:0];
+
+                                end
+                            4'h5: // JGE, if acc >= 0, pc = operand
+                                begin
+                                    if (acc[15] == 0)
+                                        begin 
+                                            pc <= ir[11:0];
+                                        end
+                                end
+                                    
+                            4'h6: // JNE, if acc != 0, pc = operand
+                                begin 
+                                    if (acc != 0)
+                                        begin
+                                            pc <= ir[11:0];
+                                        end
+
+                                end 
+                            4'hF: // STP, halt, do nothing
+                                begin
+                                    pc <= pc;
+                                end
+                            
+                        endcase
+                        fetch <= 1;
+                        end
                 end
-        end
+            end
 
 endmodule 
